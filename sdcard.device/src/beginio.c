@@ -419,6 +419,8 @@ void int_handle_scsi(struct IOStdReq *io, struct SDCardBase * SDCardBase)
             io->io_Error = IOERR_NOCMD;
             break;
     }
+
+    cmd->scsi_Status = io->io_Error ? 0x02 : 0x00; // CHECK_CONDITION status in case of error, GOOD otherwise
 }
 
 void int_do_io(struct IORequest *io , struct SDCardBase * SDCardBase)
