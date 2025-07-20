@@ -455,10 +455,12 @@ APTR Init(REGARG(struct ExecBase *SysBase, "a6"))
 
             if (UnicamBase->u_ReceiveBuffer == NULL)
             {
-                const ULONG size = sizeof(ULONG) * UNICAM_HEIGHT * UNICAM_WIDTH;
+                const ULONG size = sizeof(ULONG) * UNICAM_HEIGHT * UNICAM_WIDTH + 32;
                 
                 UnicamBase->u_ReceiveBuffer = AllocMem(size, MEMF_FAST);
                 UnicamBase->u_ReceiveBufferSize = size;
+
+                UnicamBase->u_ReceiveBuffer = (APTR)(((ULONG)UnicamBase->u_ReceiveBuffer + 31) & ~31);
             }
 
             bug("[unicam] Receive buffer: %08lx, size: %08lx\n", (ULONG)UnicamBase->u_ReceiveBuffer, UnicamBase->u_ReceiveBufferSize);
