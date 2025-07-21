@@ -105,7 +105,7 @@
   (help @copyfiles-help)
   (source "")
   (dest "C:")
-  (choices "ListDeviceTree/ListDeviceTree" "I2C/SetClockI2C" "Buddhabrot/Buddhabrot" "LatticeI2cProg/LatticeI2cProg" "SmallPT/SmallPT" "VC4Tweak/VC4Tweak")
+  (choices "I2C/SetClockI2C" "Buddhabrot/Buddhabrot" "LatticeI2cProg/LatticeI2cProg" "SmallPT/SmallPT" "VC4Tweak/VC4Tweak")
 )
 (copyfiles
   (prompt "")
