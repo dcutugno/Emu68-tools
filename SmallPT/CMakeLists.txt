@@ -16,4 +16,4 @@ add_executable(SmallPT
 set_target_properties(SmallPT PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries(SmallPT amiga m)
 
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/SmallPT DESTINATION ./SmallPT/)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/SmallPT DESTINATION SmallPT/)
