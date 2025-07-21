@@ -23,7 +23,7 @@ add_subdirectory(Emu68rom)
 
 # Contribs
 # add_subdirectory(Emu68Contribs/Emu68Info) <-- Disabled until original gets an update
-add_subdirectory(Emu68Contribs/ListDeviceTree)
+# add_subdirectory(Emu68Contribs/ListDeviceTree) <-- Disabled, using unknown set_emu68_tools_policies
 add_subdirectory(BinaryContribs)
 
 install(FILES ${CMAKE_SOURCE_DIR}/Install DESTINATION .)
