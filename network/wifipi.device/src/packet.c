@@ -336,8 +336,8 @@ int SetWPAVersion(struct SDIO *sdio, struct WiFiNetwork *network, ULONG wpa_vers
 #define PACKET_RECV_STACKSIZE   (65536 / sizeof(ULONG))
 #define PACKET_RECV_PRIORITY    5
 
-#define PACKET_WAIT_DELAY_MIN   1000
-#define PACKET_WAIT_DELAY_MAX   100000
+#define PACKET_WAIT_DELAY_MIN   1000    // 1ms - fast polling under load
+#define PACKET_WAIT_DELAY_MAX   10000   // 10ms - much faster baseline
 
 #define PACKET_INITIAL_FETCH_SIZE   16
 
@@ -1007,11 +1007,18 @@ void PacketReceiver(struct SDIO *sdio, struct Task *caller)
                 tr->tr_node.io_Error = 0;
                 tr->tr_node.io_Message.mn_Node.ln_Type = NT_REPLYMSG;
                 
-                // Poll RX hardware on every timer tick
-                sdio->RecvPKT(buffer, PACKET_INITIAL_FETCH_SIZE, sdio);
-
-                /* Update gotTransfer flag if it wasn't set already */
-                gotTransfer = LE16(pkt->p_Length) != 0;
+                // Poll RX hardware on every timer tick - drain FIFO completely
+                UBYTE fifoEmpty = FALSE;
+                do {
+                    sdio->RecvPKT(buffer, PACKET_INITIAL_FETCH_SIZE, sdio);
+                    gotTransfer = LE16(pkt->p_Length) != 0;
+                    if (gotTransfer) {
+                        fifoEmpty = FALSE;  // Got data, continue draining after processing
+                        break;  // Process this packet first, then continue draining in next iteration
+                    } else {
+                        fifoEmpty = TRUE;   // No data, FIFO is empty
+                    }
+                } while (!fifoEmpty && !gotTransfer);
             
                 if (gotTransfer || sendTransfer)
                 {
