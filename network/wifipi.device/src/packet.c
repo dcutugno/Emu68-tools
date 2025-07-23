@@ -889,7 +889,8 @@ void PacketReceiver(struct SDIO *sdio, struct Task *caller)
 
         ULONG sigSet = Wait(SIGBREAKF_CTRL_C | 
                             (1 << port->mp_SigBit) |
-                            (1 << ctrl->mp_SigBit));
+                            (1 << ctrl->mp_SigBit) |
+                            (1 << sender->mp_SigBit));
        
         // Signal from control message port?
         if (sigSet & (1 << ctrl->mp_SigBit))
@@ -907,8 +908,8 @@ void PacketReceiver(struct SDIO *sdio, struct Task *caller)
             }
         }
 
-        // Always check if there are data packets for sending
-        if (TRUE)
+        // Check if there are data packets for sending from sender port
+        if (sigSet & (1 << sender->mp_SigBit))
         {
             struct IOSana2Req *ioList[32];
             struct IOSana2Req *msg;
@@ -997,18 +998,20 @@ void PacketReceiver(struct SDIO *sdio, struct Task *caller)
                 WaitIO(&tr->tr_node);
             }
 
-            sdio->RecvPKT(buffer, PACKET_INITIAL_FETCH_SIZE, sdio);
-
-            /* Update gotTransfer flag if it wasn't set already */
-            gotTransfer = LE16(pkt->p_Length) != 0;
-
             if (sigSet & (1 << port->mp_SigBit))
             {
-                // Check if IO really completed. If yes, remove it from the queue
-                if (CheckIO(&tr->tr_node))
-                {
-                    WaitIO(&tr->tr_node);
-                }
+                // Ensure the previous timer request has fully completed
+                WaitIO(&tr->tr_node);
+
+                // Clean up IORequest state before re-arming
+                tr->tr_node.io_Error = 0;
+                tr->tr_node.io_Message.mn_Node.ln_Type = NT_REPLYMSG;
+                
+                // Poll RX hardware on every timer tick
+                sdio->RecvPKT(buffer, PACKET_INITIAL_FETCH_SIZE, sdio);
+
+                /* Update gotTransfer flag if it wasn't set already */
+                gotTransfer = LE16(pkt->p_Length) != 0;
             
                 if (gotTransfer || sendTransfer)
                 {
@@ -1571,10 +1574,12 @@ void NetworkScanner(struct SDIO *sdio)
         
         if (sigSet & (1 << port->mp_SigBit))
         {
-            if (CheckIO(&tr->tr_node))
-            {
-                WaitIO(&tr->tr_node);
-            }
+            // Ensure the previous timer request has fully completed
+            WaitIO(&tr->tr_node);
+
+            // Clean up IORequest state before re-arming
+            tr->tr_node.io_Error = 0;
+            tr->tr_node.io_Message.mn_Node.ln_Type = NT_REPLYMSG;
 
             // No network is in progress, decrease delay and start scanner
             if (!sdio->s_WiFiBase->w_NetworkScanInProgress)

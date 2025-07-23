@@ -96,11 +96,12 @@ void UnitTask(struct WiFiUnit *unit, struct Task *parent)
         // Handle periodic request
         if (sigset & (1 << port->mp_SigBit))
         {
-            // Check if IO really completed. If yes, remove it from the queue
-            if (CheckIO(&tr->tr_node))
-            {
-                WaitIO(&tr->tr_node);
-            }
+            // Ensure the previous timer request has fully completed
+            WaitIO(&tr->tr_node);
+
+            // Clean up IORequest state before re-arming
+            tr->tr_node.io_Error = 0;
+            tr->tr_node.io_Message.mn_Node.ln_Type = NT_REPLYMSG;
 #if 0
             // No network is in progress, decrease delay and start scanner
             if (!WiFiBase->w_NetworkScanInProgress)
@@ -1092,10 +1093,11 @@ static int Do_NSCMD_DEVICEQUERY(struct IOStdReq *io)
     D(bug("[WiFi.0] NSCMD_DEVICEQUERY\n"));
 
     /* Fill out structure */
+    dq->nsdqr_DevQueryFormat = 0;                                    /* Standard format */
     dq->nsdqr_DeviceType = NSDEVTYPE_SANA2;
     dq->nsdqr_DeviceSubType = 0;
     dq->nsdqr_SupportedCommands = (UWORD*)WiFi_SupportedCommands;
-    io->io_Actual = sizeof(struct NSDeviceQueryResult) + sizeof(APTR);
+    io->io_Actual = sizeof(struct NSDeviceQueryResult);
     dq->nsdqr_SizeAvailable = io->io_Actual;
     io->io_Error = 0;
 
